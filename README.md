@@ -1,73 +1,77 @@
-# ORNA – מוקאפ דאשבורד נהג
+# ORNA driver display: working prototype
 
-מוקאפ שרץ של מסך הנהג שעיצבנו לרכב השמש ORNA (iLumen European Solar Challenge).
-המסך זהה לעיצוב: 800×480, כל הנתונים והנוריות, ונתונים חיים מסימולטור.
-הקוד כתוב ב-Python עם PySide6, כמו ממשק הנהג הקיים של הצוות על ה-Raspberry Pi.
+A working prototype of the driver display we designed for **ORNA**, the Afeka car club's solar car (iLumen European Solar Challenge). It matches the design exactly: an 800×480 screen with every reading and warning light, fed live by a simulator. Written in Python with PySide6, like the team's existing driver interface on the Raspberry Pi.
 
-מגישים: שון ורחובסקי, סמיון גליצקי
+**Authors:** [Shon Verkhovskiy](https://github.com/ShonVerh), [Semyon Galitsky](https://github.com/SemyonGalitsky) ([Hebrew README](README.he.md))
 
-![נסיעה רגילה](docs/driving.png)
+> **Context.** This was built as part of our entry research assignment for the club's software team. We researched telemetry systems, analysed the team's previous 24-hour race, and wrote the display and telemetry specification ourselves; the code was written with AI assistance to turn that design into a running prototype quickly. It runs on a simulator. The real CAN input is implemented and tested on a virtual CAN bus with a sample DBC file, but it has **not been run on the car**, and the team's own DBC file is not part of this repository.
 
-## הרצה
+![Normal driving](docs/driving.png)
+
+| | | |
+|---|---|---|
+| ![CAN loss](docs/canloss.png) | ![Message from the pit](docs/message.png) | ![BMS fault](docs/bms.png) |
+| CAN LOSS | Message from the pit | BMS FAULT |
+
+## Running it
 
 ```bash
 pip install -r requirements.txt
-python main.py                 # חלון 800×480 עם סימולטור וסרגל בדיקות
-python main.py --fullscreen    # על מסך ה-7" ברכב (בלי סרגל הכלים)
-python main.py --demo          # מעבר אוטומטי בין כל 19 מצבי העיצוב (להצגה; גם --auto-cycle)
-python main.py --state 14      # פתיחה במצב מסוים מהעיצוב (כאן: CAN LOSS)
-python -m pytest tests         # בדיקות ללוגיקה ולפענוח CAN (בלי מסך)
-python tools/render_states.py docs   # שמירת תמונה לכל מצב מסך
+python main.py                 # 800×480 window with the simulator and a test toolbar
+python main.py --fullscreen    # on the car's 7" screen (no toolbar)
+python main.py --demo          # cycles through all 19 design states (for showing it; also --auto-cycle)
+python main.py --state 14      # opens in one design state (here: CAN LOSS)
+python -m pytest tests         # tests for the logic and the CAN decoding (no screen needed)
+python tools/render_states.py docs   # saves a picture of every screen state
 ```
 
-הקובץ כותב לתיקייה `logs/` שני קובצי CSV: נתונים גולמיים ב-10 Hz (נשמרים לדיסק פעם בשנייה), ויומן אירועים (הודעות, אישורי OK, פיט, ניתוק).
-אפשר לבטל עם `--no-log`.
+The app writes two CSV files to `logs/`: raw data at 10 Hz (flushed to disk once a second) and an event log (messages, OK confirmations, pit calls, disconnections). Turn it off with `--no-log`.
 
-## מקשים
+## Keys
 
-| מי | מקש | פעולה |
+| Who | Key | Action |
 |---|---|---|
-| נהג (כפתורי ההגה) | Space | OK: אישור הודעה מהפיט |
-| | P | כפתור PIT |
-| הרכב (סימולטור) | ← / → | איתות שמאלה / ימינה |
+| Driver (steering-wheel buttons) | Space | OK: acknowledge a message from the pit |
+| | P | PIT button |
+| The car (simulator) | ← / → | Turn signal left / right |
 | | Z | Hazard |
-| | R | החלפת D / R |
+| | R | Switch D / R |
 | | B / I / S / T | BMS FAULT / IMD FAULT / SAFE STATE / LOW TIRE |
-| | H / J | התחממות מנוע / בקר |
-| | C | ניתוק נתוני ה-CAN (CAN LOSS, ואז RECOVERING) |
-| הפיט | M | שליחת הודעה (נכנסת לתור) |
-| | Shift+P | הדלקת נורית PIT מהפיט |
-| | ↑ / ↓ | שינוי יעד המהירות ב-5 קמ"ש |
-| | L | ניתוק הקשר לפיט (NO LINK) |
-| | N | הקפה חדשה |
-| הדגמה | F1 | הפעלה / עצירה של מעבר אוטומטי בין 19 מצבי העיצוב כל 3 שניות |
-| | [ / ] או Tab / 0 | המצב הקודם / הבא מהעיצוב / חזרה לסימולציה חיה |
-| | F11 / Esc | מסך מלא / יציאה |
+| | H / J | Motor / controller overheating |
+| | C | Cut the CAN data (CAN LOSS, then RECOVERING) |
+| The pit | M | Send a message (goes into a queue) |
+| | Shift+P | Turn on the PIT light from the pit |
+| | ↑ / ↓ | Change the speed target by 5 km/h |
+| | L | Cut the link to the pit (NO LINK) |
+| | N | New lap |
+| Demo | F1 | Start / stop cycling through the 19 design states every 3 seconds |
+| | [ / ] or Tab / 0 | Previous / next design state / back to the live simulation |
+| | F11 / Esc | Fullscreen / exit |
 
-מתחת למסך יש סרגל כלים לבדיקות (לא מופיע ב-`--fullscreen`): בחירת מצב מהעיצוב, מעבר אוטומטי, וכפתורים להודעת פיט, OK, PIT וניתוק CAN.
+Under the screen there is a test toolbar (hidden with `--fullscreen`): pick a design state, auto-cycle, and buttons for a pit message, OK, PIT and cutting the CAN data.
 
-## מבנה הקוד
+## How the code is organised
 
 ```
 VehicleSource (sim | CAN) ──► DashboardLogic ──► Dashboard (UI)
-PitLink (יעד, הודעות, פיט) ──┘        └──► DataLogger (CSV)
+PitLink (target, messages, pit) ──┘        └──► DataLogger (CSV)
 ```
 
-| קובץ | תפקיד |
+| File | Role |
 |---|---|
-| `sources/base.py` | הממשק שכל מקור נתונים מממש: `poll()` |
-| `sources/simulator.py` | סימולטור: מהירות סביב היעד, הספק ורגנרציה, ירידת SOC, חימום |
-| `sources/can_source.py` | מקור CAN אמיתי (python-can + קובץ DBC). קורא ב-thread נפרד לכל ערוץ כדי לא לאבד הודעות; הודעה פגומה לא מפילה אותו; אם הממשק לא נפתח המסך מציג CAN LOSS ומנסה שוב כל 3 שניות. נבדק על CAN וירטואלי, **לא על הרכב** |
-| `pitlink.py` | הקשר לפיט: יעד מהירות, הודעות, נורית PIT. כאן מדומה מהמקלדת |
-| `logic.py` | כל ההחלטות: ספים לאזהרות, CAN LOSS, RECOVERING, NO LINK, תור הודעות, נעילת PIT, צבע היעד |
-| `ui/dashboard.py` | ציור המסך לפי העיצוב. רק מצייר, לא מחליט |
-| `datalog.py` | שמירת נתונים גולמיים ואירועים ל-CSV |
-| `config.py` | כל הספים והסקאלות במקום אחד |
-| `presets.py` | 19 מצבי המסך מהעיצוב, לסרגל הכלים ולשמירת תמונות |
+| `sources/base.py` | The interface every data source implements: `poll()` |
+| `sources/simulator.py` | Simulator: speed around the target, power and regeneration, falling state of charge, heating |
+| `sources/can_source.py` | Real CAN source (python-can + a DBC file). One reader thread per channel so no frames are lost; a malformed frame doesn't crash it; if the interface won't open, the screen shows CAN LOSS and retries every 3 seconds. Tested on a virtual CAN bus, **not on the car** |
+| `pitlink.py` | The link to the pit: speed target, messages, PIT light. Simulated from the keyboard here |
+| `logic.py` | Every decision: warning thresholds, CAN LOSS, RECOVERING, NO LINK, the message queue, PIT lock, the target colour |
+| `ui/dashboard.py` | Draws the screen to the design. It only draws; it decides nothing |
+| `datalog.py` | Saves raw data and events to CSV |
+| `config.py` | Every threshold and scale in one place |
+| `presets.py` | The 19 screen states from the design, for the toolbar and for saving pictures |
 
-## מעבר לרשת ה-CAN האמיתית
+## Moving to the real CAN network
 
-הממשק לא תלוי במקור הנתונים, ולכן מחליפים רק את המקור:
+The display doesn't depend on where the data comes from, so only the source changes (on Linux, through SocketCAN):
 
 ```bash
 pip install python-can cantools
@@ -75,16 +79,15 @@ python main.py --source can --dbc orna.dbc --fullscreen
 python main.py --source can --dbc orna.dbc --channels can0 can1 --bitrate 500000
 ```
 
-מה צריך להשלים לפני שזה עובד ברכב:
-1. ב-`sources/can_source.py`, לעדכן את `SIGNAL_MAP` לשמות האותות בקובץ ה-DBC של הצוות (בקר המנוע, BMS ומודול ה-GPS/טמפרטורה).
-2. לחבר את קשר הפיט האמיתי (היום Firebase / FastAPI) במקום `SimulatedPitLink`, עם אותן פונקציות.
-3. לחבר את כפתורי OK ו-PIT שעל ההגה (למשל דרך GPIO) לפונקציות `ok_pressed()` ו-`pit_pressed()` שב-`logic.py`.
+What has to be done before it works in the car:
+1. In `sources/can_source.py`, update `SIGNAL_MAP` to the signal names in the team's DBC file (motor controller, BMS and the GPS/temperature module). The names there now are placeholders.
+2. Connect the real pit link (today Firebase / FastAPI) in place of `SimulatedPitLink`, with the same functions.
+3. Wire the OK and PIT buttons on the steering wheel (for example through GPIO) to `ok_pressed()` and `pit_pressed()` in `logic.py`.
 
-## הנחות שצריך לאשר עם הצוות (`config.py`)
+## Assumptions to confirm with the team (`config.py`)
 
-מהירות מקסימלית 120 קמ"ש, הספק מקסימלי 5 kW ורגנרציה 2.5 kW, ספי חום (מנוע 95°C, בקר 85°C), ספי SOC לצבע (30% / 15%).
-ערכי הסימולטור (גודל סוללה, צריכה) לא מייצגים את הרכב האמיתי.
+Top speed 120 km/h, maximum power 5 kW and regeneration 2.5 kW, temperature limits (motor 95°C, controller 85°C), state-of-charge colour thresholds (30% / 15%). The simulator's values (battery size, consumption) don't represent the real car.
 
-## פונטים
+## Fonts
 
-Inter ו-JetBrains Mono, שניהם ברישיון SIL Open Font License (קובצי הרישיון בתיקייה `fonts/`).
+Inter and JetBrains Mono, both under the SIL Open Font License (licence files in `fonts/`).
